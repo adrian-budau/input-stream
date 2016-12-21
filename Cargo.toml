@@ -1,13 +1,13 @@
 [package]
-name = "io-ascii-stream"
+name = "input-stream"
 version = "0.1.0"
 authors = ["Adrian Budau <budau.adi@gmail.com>"]
-repository = "https://github.com/adrian-budau/io-stream.git"
-homepage = "htps://githubcom/adrian-budau/io-stream.git"
+repository = "https://github.com/adrian-budau/input-stream.git"
+homepage = "htps://githubcom/adrian-budau/input-stream.git"
 license = "MIT"
 readme = "README.md"
 description = "IO streams similar to C++'s streams"
-keywords = ["streams", "parsing", "io"]
+keywords = ["stream", "parsing", "io"]
 
 [dependencies]
 error-chain = "0.7.1"
