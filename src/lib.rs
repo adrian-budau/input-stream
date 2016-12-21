@@ -143,7 +143,7 @@ mod tests {
     #[bench]
     fn numbers_bench(b: &mut Bencher) {
         b.iter(|| {
-            let file = File::open("./test/numbers").unwrap();
+            let file = File::open("./fixtures/numbers").unwrap();
             let mut stream = InputStream::new(BufReader::new(file));
 
             let mut count = 0;
@@ -161,7 +161,7 @@ mod tests {
     #[bench]
     fn default_bench(b: &mut Bencher) {
         b.iter(|| {
-            let file = File::open("./test/numbers").unwrap();
+            let file = File::open("./fixtures/numbers").unwrap();
             let mut count = 0;
             let mut sum = 0;
             for line in BufReader::new(file).lines() {

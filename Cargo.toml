@@ -8,6 +8,9 @@ license = "MIT"
 readme = "README.md"
 description = "IO streams similar to C++'s streams"
 keywords = ["stream", "parsing", "io"]
+exclude = [
+    "fixtures/*"
+]
 
 [dependencies]
 error-chain = "0.7.1"
