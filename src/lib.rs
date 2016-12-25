@@ -1,4 +1,6 @@
 #![recursion_limit = "1024"]
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
 
 #![feature(test)]
 extern crate test;
@@ -59,7 +61,7 @@ fn scan<T, F>(reader: &mut T, byte_buffer: &mut Vec<u8>) -> Result<F> where
     act_while(reader, |&&c| is_whitespace(c), |_| {})
         .chain_err(|| "IO Error")?;
     byte_buffer.clear();
-    act_while(reader, |&&c| !is_whitespace(c), |slice| byte_buffer.extend_from_slice(&slice))
+    act_while(reader, |&&c| !is_whitespace(c), |slice| byte_buffer.extend_from_slice(slice))
         .chain_err(|| "IO Error")?;
 
     let slice = match byte_buffer.split_last() {
