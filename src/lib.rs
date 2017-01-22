@@ -9,27 +9,28 @@ use std::io::{self, Read, BufRead};
 use std::str::{self, FromStr};
 
 mod errors {
-    error_chain! { }
+    error_chain!{}
 }
 
 use errors::*;
 
 pub struct InputStream<T: BufRead> {
     reader: T,
-    byte_buffer : Vec<u8>,
+    byte_buffer: Vec<u8>,
 }
 
 fn is_whitespace(c: u8) -> bool {
     match c {
-        b' ' | b'\x09'...b'\x0d' => true,
+        b' ' |
+        b'\x09'...b'\x0d' => true,
         _ => false,
     }
 }
 
-fn act_while<T, F, G>(reader: &mut T, mut condition: F, mut act: G) -> io::Result<()> where
-    T: BufRead,
-    F: FnMut(&&u8) -> bool,
-    G: FnMut(&[u8])
+fn act_while<T, F, G>(reader: &mut T, mut condition: F, mut act: G) -> io::Result<()>
+    where T: BufRead,
+          F: FnMut(&&u8) -> bool,
+          G: FnMut(&[u8])
 {
     loop {
         let (skipped, done) = match reader.fill_buf() {
@@ -37,29 +38,29 @@ fn act_while<T, F, G>(reader: &mut T, mut condition: F, mut act: G) -> io::Resul
                 let skipped = buf.iter().take_while(&mut condition).count();
                 act(&buf[..skipped]);
                 (skipped, skipped < buf.len() || buf.len() == 0)
-            },
+            }
             Err(ref e) if e.kind() == io::ErrorKind::Interrupted => continue,
             Err(e) => return Err(e),
         };
 
         reader.consume(skipped);
         if done {
-            break
+            break;
         }
     }
     Ok(())
 }
 
-fn scan<T, F>(reader: &mut T, byte_buffer: &mut Vec<u8>) -> Result<F> where
-    T: BufRead,
-    F: FromStr,
-    <F as FromStr>::Err: std::error::Error + Send + 'static
+fn scan<T, F>(reader: &mut T, byte_buffer: &mut Vec<u8>) -> Result<F>
+    where T: BufRead,
+          F: FromStr,
+          <F as FromStr>::Err: std::error::Error + Send + 'static
 {
-    act_while(reader, |&&c| is_whitespace(c), |_| {})
-        .chain_err(|| "IO Error")?;
+    act_while(reader, |&&c| is_whitespace(c), |_| {}).chain_err(|| "IO Error")?;
     byte_buffer.clear();
-    act_while(reader, |&&c| !is_whitespace(c), |slice| byte_buffer.extend_from_slice(slice))
-        .chain_err(|| "IO Error")?;
+    act_while(reader,
+              |&&c| !is_whitespace(c),
+              |slice| byte_buffer.extend_from_slice(slice)).chain_err(|| "IO Error")?;
 
     let slice = match byte_buffer.split_last() {
         Some((&b' ', slice)) => slice,
@@ -73,14 +74,16 @@ fn scan<T, F>(reader: &mut T, byte_buffer: &mut Vec<u8>) -> Result<F> where
 }
 
 impl<T: BufRead> InputStream<T> {
-
     pub fn new(reader: T) -> InputStream<T> {
-        InputStream { reader : reader, byte_buffer: Vec::new() }
+        InputStream {
+            reader: reader,
+            byte_buffer: Vec::new(),
+        }
     }
 
-    pub fn scan<F>(&mut self) -> Result<F> where
-        F: FromStr,
-        <F as FromStr>::Err: std::error::Error + Send + 'static
+    pub fn scan<F>(&mut self) -> Result<F>
+        where F: FromStr,
+              <F as FromStr>::Err: std::error::Error + Send + 'static
     {
         scan(&mut self.reader, &mut self.byte_buffer)
     }
