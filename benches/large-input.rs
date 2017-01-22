@@ -11,7 +11,7 @@ use rand::random;
 use std::str::FromStr;
 use test::Bencher;
 
-const NUMBERS_GENERATED: usize = 200_000;
+const NUMBERS_GENERATED: usize = 100_000;
 
 fn generate_numbers<T>(many: usize) -> String
     where T: rand::Rand + std::fmt::Display
