@@ -51,28 +51,6 @@ fn act_while<T, F, G>(reader: &mut T, mut condition: F, mut act: G) -> io::Resul
     Ok(())
 }
 
-fn scan<T, F>(reader: &mut T, byte_buffer: &mut Vec<u8>) -> Result<F>
-    where T: BufRead,
-          F: FromStr,
-          <F as FromStr>::Err: std::error::Error + Send + 'static
-{
-    act_while(reader, |&&c| is_whitespace(c), |_| {}).chain_err(|| "IO Error")?;
-    byte_buffer.clear();
-    act_while(reader,
-              |&&c| !is_whitespace(c),
-              |slice| byte_buffer.extend_from_slice(slice)).chain_err(|| "IO Error")?;
-
-    let slice = match byte_buffer.split_last() {
-        Some((&b' ', slice)) => slice,
-        _ => byte_buffer.as_slice(),
-    };
-
-    str::from_utf8(slice)
-        .chain_err(|| "Input data not Utf-8")?
-        .parse::<F>()
-        .chain_err(|| "Could not parse string into requested type")
-}
-
 impl<T: BufRead> InputStream<T> {
     pub fn new(reader: T) -> InputStream<T> {
         InputStream {
@@ -85,7 +63,22 @@ impl<T: BufRead> InputStream<T> {
         where F: FromStr,
               <F as FromStr>::Err: std::error::Error + Send + 'static
     {
-        scan(&mut self.reader, &mut self.byte_buffer)
+        let &mut InputStream { ref mut reader, ref mut byte_buffer } = self;
+        act_while(reader, |&&c| is_whitespace(c), |_| {}).chain_err(|| "IO Error")?;
+        byte_buffer.clear();
+        act_while(reader,
+                  |&&c| !is_whitespace(c),
+                  |slice| byte_buffer.extend_from_slice(slice)).chain_err(|| "IO Error")?;
+
+        let slice = match byte_buffer.split_last() {
+            Some((&b' ', slice)) => slice,
+            _ => byte_buffer.as_slice(),
+        };
+
+        str::from_utf8(slice)
+            .chain_err(|| "Input data not Utf-8")?
+            .parse::<F>()
+            .chain_err(|| "Could not parse string into requested type")
     }
 }
 
