@@ -5,7 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/)
 
 ## [Unreleased]
-## Modified
+### Added
+- Now works on stable
+
+### Modified
 - Change clippy wildcard dependency to "0.0.\*"
 - Moved benchmark to benches/ and using [rand](https://crates.io/crates/rand)
 crate to generate the fixtures
