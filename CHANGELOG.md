@@ -6,7 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/)
 
 ## [Unreleased]
 ## Modified
-- Change clippy wildcard dependency to a dev-dependency
+- Change clippy wildcard dependency to "0.0.\*"
+- Moved benchmark to benches/ and using [rand](https://crates.io/crates/rand)
+crate to generate the fixtures
+
+## Removed
+- Removed fixtures
 ## [0.1.1] - 2016-12-25
 ### Added
 - Clippy lints

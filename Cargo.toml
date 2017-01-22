@@ -16,5 +16,8 @@ exclude = [
 error-chain = "0.7.1"
 clippy = {version = "0.0.*", optional = true}
 
+[dev-dependencies]
+rand = "0.*"
+
 [features]
 default = []

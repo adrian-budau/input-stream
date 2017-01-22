@@ -2,9 +2,6 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
 
-#![feature(test)]
-extern crate test;
-
 #[macro_use]
 extern crate error_chain;
 
@@ -108,9 +105,6 @@ impl<T: BufRead> BufRead for InputStream<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test::Bencher;
-    use std::fs::File;
-    use std::io::{BufReader, BufRead};
 
     #[test]
     fn simple_strings() {
@@ -140,41 +134,5 @@ mod tests {
         let mut stream = InputStream::new("12\nHello".as_bytes());
         assert_eq!(12, stream.scan().unwrap());
         assert_eq!("Hello", stream.scan::<String>().unwrap());
-    }
-
-    #[bench]
-    fn numbers_bench(b: &mut Bencher) {
-        b.iter(|| {
-            let file = File::open("./fixtures/numbers").unwrap();
-            let mut stream = InputStream::new(BufReader::new(file));
-
-            let mut count = 0;
-            let mut sum = 0;
-            while let Ok(number) = stream.scan() {
-                count += 1;
-                sum ^= number;
-            }
-
-            assert_eq!(count, 250000);
-            assert_eq!(sum, 1275235796);
-        })
-    }
-
-    #[bench]
-    fn default_bench(b: &mut Bencher) {
-        b.iter(|| {
-            let file = File::open("./fixtures/numbers").unwrap();
-            let mut count = 0;
-            let mut sum = 0;
-            for line in BufReader::new(file).lines() {
-                for number in line.unwrap().split_whitespace() {
-                    let number = number.parse::<i32>().unwrap();
-                    count += 1;
-                    sum ^= number;
-                }
-            }
-            assert_eq!(count, 250000);
-            assert_eq!(sum, 1275235796);
-        })
     }
 }
