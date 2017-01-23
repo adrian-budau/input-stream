@@ -7,7 +7,7 @@ extern crate input_stream;
 extern crate rand;
 
 use input_stream::InputStream;
-use rand::random;
+use rand::Rng;
 use std::str::FromStr;
 use test::Bencher;
 
@@ -16,8 +16,9 @@ const NUMBERS_GENERATED: usize = 100_000;
 fn generate_numbers<T>(many: usize) -> String
     where T: rand::Rand + std::fmt::Display
 {
+    let mut rng = rand::thread_rng();
     (0..many)
-        .map(|_| random::<T>().to_string())
+        .map(|_| rng.gen::<T>().to_string())
         .fold("".to_string(), |mut str, number| {
             str += " ";
             str += &number;
