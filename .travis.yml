@@ -1,3 +1,14 @@
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - cmake
+      - gcc
+      - binutils-dev
+      - python3
+
 language: rust
 
 rust:
@@ -5,20 +16,30 @@ rust:
   - beta
   - nightly
 
-before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y python3
+before_script:
+  - cargo install cargo-deadlinks
 
 script:
   - python3 build_script.py
 
 after_success: |
-  sudo apt-get install libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev &&
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-  tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make &&
-  make install DESTDIR=../tmp && cd ../.. &&
-  sudo ./kcov-master/tmp/usr/local/bin/kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov target/debug/input_stream-* --verify --debug=15
+  tar xzf master.tar.gz &&
+  cd kcov-master &&
+  mkdir build &&
+  cd build &&
+  cmake .. &&
+  make &&
+  sudo make install &&
+  cd ../.. &&
+  rm -rf kcov-master &&
+  kcov --exclude-pattern=/.cargo,/usr/lib --verify target/cov target/debug/input_stream-* &&
+  bash <(curl -s https://codecov.io/bash) &&
+  echo "Uploaded code coverage"
 
 matrix:
+  include:
+    - os: osx
+      rust: stable
   allow_failures:
     - rust: nightly
