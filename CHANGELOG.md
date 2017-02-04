@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/)
 ## [Unreleased]
 ### Added
 - Now works on stable
+- Documentation :smile:
 
 ### Modified
 - Change clippy wildcard dependency to "0.0.\*"
 - Moved benchmark to benches/ and using [rand](https://crates.io/crates/rand)
 crate to generate the fixtures
+- Result is exported
+- Most lints became errors instead of warnings, code has been fixed to respect them
 
 ## Removed
 - Removed fixtures
