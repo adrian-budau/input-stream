@@ -14,7 +14,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! input-stream = "0.1.1"
+//! input-stream = "0.2.0"
 //! ```
 //!
 //! and this in your crate root:
