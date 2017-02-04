@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+from __future__ import print_function
 from os import environ
 from subprocess import check_call, check_output, STDOUT
 
