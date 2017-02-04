@@ -4,6 +4,7 @@ A rust library oferring input streams similar to C++'s \*fstreams.
 
 [![Build Status](https://travis-ci.org/adrian-budau/input-stream.svg?branch=master)](https://travis-ci.org/adrian-budau/input-stream)
 [![](https://img.shields.io/crates/v/input-stream.svg)](https://crates.io/crates/input-stream)
+[![Docs](https://docs.rs/input-stream/badge.svg)](https://docs.rs/input-stream)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ### Documentation
