@@ -10,14 +10,14 @@
 //! # Usage
 //!
 //! This crate is [on crates.io](https://crates.io/crates/input-stream) and can be used
-//! by adding `input-stream` to the dependencies in your project's `Cargo.toml`.
+//! by adding `input-stream` to the dependencies in your project's `Cargo.toml`:
 //!
 //! ```toml
 //! [dependencies]
 //! input-stream = "0.1.1"
 //! ```
 //!
-//! and this in your crate root
+//! and this in your crate root:
 //!
 //! ```rust
 //! extern crate input_stream;
