@@ -25,20 +25,26 @@ script:
   - python build_script.py
 
 after_success: |
-  wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-  tar xzf master.tar.gz &&
-  cd kcov-master &&
-  mkdir build &&
-  cd build &&
-  cmake .. &&
-  make &&
-  sudo make install &&
-  cd ../.. &&
-  rm -rf kcov-master &&
-  kcov --exclude-pattern=/.cargo,/usr/lib --verify target/cov target/debug/input_stream-* &&
-  bash <(curl -s https://codecov.io/bash) &&
-  echo "Uploaded code coverage"
-
+  if [ "$TRAVIS_RUST_VERSION" = "nightly" ] && [ "$TRAVIS_OS_NAME" = "linux" ]; then
+    wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
+    tar xzf master.tar.gz &&
+    cd kcov-master &&
+    mkdir build &&
+    cd build &&
+    cmake .. &&
+    make &&
+    sudo make install &&
+    cd ../.. &&
+    rm -rf kcov-master &&
+    for file in target/debug/input_stream-*; do
+      if [[ -x "$file" ]]; then
+        mkdir -p "target/cov/$(basename $file)";
+      fi;
+      kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file";
+    done &&
+    bash <(curl -s https://codecov.io/bash) &&
+    echo "Uploaded code coverage";
+  fi
 matrix:
   include:
     - os: osx

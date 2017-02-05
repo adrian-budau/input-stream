@@ -11,7 +11,7 @@ keywords = ["stream", "parsing", "io"]
 categories = ["parsing"]
 
 [badges]
-travis-ci = { repoistory = "adrian-budau/input-stream" }
+travis-ci = { repository = "adrian-budau/input-stream" }
 
 [dependencies]
 error-chain = "0.7.1"
