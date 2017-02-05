@@ -19,7 +19,7 @@ rust:
 cache: cargo
 
 before_script:
-  - cargo install cargo-deadlinks
+  - (cargo install cargo-deadlinks || true)
 
 script:
   - python build_script.py
