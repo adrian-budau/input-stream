@@ -1,0 +1,34 @@
+environment:
+  matrix:
+    - TARGET: x86_64-pc-windows-gnu
+      MSYS_BITS: 64
+      CHANNEL: stable
+    - TARGET: i686-pc-windows-gnu
+      MSYS_BITS: 32
+      CHANNEL: stable
+    - TARGET: x86_64-pc-windows-msvc
+      CHANNEL: stable
+    - TARGET: i686-pc-windows-msvc
+      CHANNEL: stable
+    - TARGET: x86_64-pc-windows-msvc
+      CHANNEL: beta
+    - TARGET: x86_64-pc-windows-msvc
+      CHANNEL: nightly
+
+install:
+  - if defined MSYS_BITS set PATH=C:\msys64\mingw%MSYS_BITS%\bin;C:\msys64\usr\bin;%PATH%
+  - curl -sSf -o rustup-init.exe https://win.rustup.rs/
+  - rustup-init.exe -y --default-host %TARGET% --default-toolchain %CHANNEL%
+  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - rustc -Vv
+  - cargo -V
+
+test_script:
+  - cargo build --verbose
+  - cargo test --verbose --target %TARGET%
+  - if "%CHANNEL%" == "nightly" cargo bench
+cache:
+  - C:\Users\appveyor\.cargo\registry
+  - target
+
+build: false
