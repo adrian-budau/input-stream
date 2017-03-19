@@ -128,7 +128,7 @@ fn act_while<T, F, G>(reader: &mut T, mut condition: F, mut act: G) -> io::Resul
             Ok(buf) => {
                 let skipped = buf.iter().take_while(&mut condition).count();
                 act(&buf[..skipped]);
-                (skipped, skipped < buf.len() || buf.len() == 0)
+                (skipped, skipped < buf.len() || buf.is_empty())
             }
             Err(ref e) if e.kind() == io::ErrorKind::Interrupted => continue,
             Err(e) => return Err(e),
