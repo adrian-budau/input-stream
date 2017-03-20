@@ -233,4 +233,18 @@ mod tests {
         assert_eq!(12, stream.scan().expect("12"));
         assert_eq!("Hello", stream.scan::<String>().expect("Hello"));
     }
+
+    #[test]
+    fn test_non_utf8() {
+        let text: [u8; 1] = [255];
+        let mut stream = InputStream::new(&text[..]);
+        assert_eq!(true, stream.scan::<i32>().is_err());
+    }
+
+    #[test]
+    fn test_not_parsing() {
+        let text = "hello";
+        let mut stream = InputStream::new(text.as_bytes());
+        assert_eq!(true, stream.scan::<i32>().is_err());
+    }
 }
