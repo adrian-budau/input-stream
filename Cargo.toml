@@ -1,6 +1,6 @@
 [package]
 name = "input-stream"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Adrian Budau <budau.adi@gmail.com>"]
 documentation = "https://docs.rs/input-stream"
 repository = "https://github.com/adrian-budau/input-stream.git"
