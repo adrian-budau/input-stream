@@ -14,8 +14,7 @@ categories = ["parsing"]
 travis-ci = { repository = "adrian-budau/input-stream" }
 
 [dependencies]
-error-chain = "0.7.1"
-clippy = {version = "0.0.*", optional = true}
+failure = "0.1.1"
 
 [dev-dependencies]
 rand = "0.*"

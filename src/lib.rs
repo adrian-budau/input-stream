@@ -14,7 +14,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! input-stream = "0.2.0"
+//! input-stream = "0.3.0"
 //! ```
 //!
 //! and this in your crate root:
@@ -69,36 +69,82 @@
 //! println!("Read a float: {}", value);
 //!
 
-#![recursion_limit = "1024"]
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
-#![deny(fat_ptr_transmutes,
-        missing_copy_implementations,
-        missing_debug_implementations,
-        missing_docs,
-        trivial_casts,
-        trivial_numeric_casts,
-        unsafe_code,
-        unused_extern_crates,
-        unused_import_braces,
-        unused_qualifications,
-        unused_results,
-        variant_size_differences,
-        warnings)]
-
+#![deny(missing_copy_implementations, missing_debug_implementations, missing_docs, trivial_casts,
+        trivial_numeric_casts, unsafe_code, unused_extern_crates, unused_import_braces,
+        unused_qualifications, unused_results, variant_size_differences, warnings)]
+#![cfg_attr(feature = "cargo-clippy", deny(clippy))]
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
 
-use std::io::{self, Read, BufRead};
+use failure::{Backtrace, Context, Fail, ResultExt};
+use std::fmt::{self, Display, Formatter};
+use std::io::{self, BufRead, Read};
+use std::result;
 use std::str::{self, FromStr};
 
-/// errors sub-module made with [error-chain](https://crates.io/crates/error-chain)
-pub mod errors {
-    error_chain!{}
+/// The type of errors this library can return.
+///
+/// A kind can be obtained from an [`Error`](struct.Error.html)
+/// by calling its [`kind`](struct.Error.html#method.kind) method.
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
+pub enum ErrorKind {
+    /// Could not read from the underlying buffered reader.
+    #[fail(display = "IO error")]
+    Io,
+    /// Could not parse the byte buffer into valid Utf8.
+    #[fail(display = "Input data is not utf8")]
+    Utf8,
+    /// Could not parse the utf8 string into the requested type.
+    #[fail(display = "Could not parse string as type")]
+    Parse,
 }
 
-pub use errors::Result;
-use errors::ResultExt;
+/// The type of the errors returned by this library.
+#[derive(Debug)]
+pub struct Error {
+    inner: Context<ErrorKind>,
+}
+
+impl Error {
+    /// Returns the corresponding [`ErrorKind`](enum.ErrorKind.html) for this error.
+    pub fn kind(&self) -> ErrorKind {
+        *self.inner.get_context()
+    }
+}
+
+impl Fail for Error {
+    fn cause(&self) -> Option<&Fail> {
+        self.inner.cause()
+    }
+
+    fn backtrace(&self) -> Option<&Backtrace> {
+        self.inner.backtrace()
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.inner, f)
+    }
+}
+
+impl From<ErrorKind> for Error {
+    fn from(kind: ErrorKind) -> Error {
+        Error {
+            inner: Context::new(kind),
+        }
+    }
+}
+
+impl From<Context<ErrorKind>> for Error {
+    fn from(inner: Context<ErrorKind>) -> Error {
+        Error { inner }
+    }
+}
+
+/// A specialized [`Result`](https://doc.rust-lang.org/std/result/enum.Result.html) for this
+/// library's errors.
+pub type Result<T> = result::Result<T, Error>;
 
 /// A wrapper for [`std::io::BufRead`](https://doc.rust-lang.org/std/io/trait.BufRead.html).
 ///
@@ -112,16 +158,16 @@ pub struct InputStream<T: BufRead> {
 
 fn is_whitespace(c: u8) -> bool {
     match c {
-        b' ' |
-        b'\x09'...b'\x0d' => true,
+        b' ' | b'\x09'...b'\x0d' => true,
         _ => false,
     }
 }
 
 fn act_while<T, F, G>(reader: &mut T, mut condition: F, mut act: G) -> io::Result<()>
-    where T: BufRead,
-          F: FnMut(&&u8) -> bool,
-          G: FnMut(&[u8])
+where
+    T: BufRead,
+    F: FnMut(&&u8) -> bool,
+    G: FnMut(&[u8]),
 {
     loop {
         let (skipped, done) = match reader.fill_buf() {
@@ -147,36 +193,42 @@ impl<T: BufRead> InputStream<T> {
     /// [`std::io::BufRead`](https://doc.rust-lang.org/std/io/trait.BufRead.html).
     pub fn new(reader: T) -> InputStream<T> {
         InputStream {
-            reader: reader,
+            reader,
             byte_buffer: Vec::new(),
         }
     }
 
     /// Scan the underlying buffered reader for a value of a type that implements
     /// [`std::str::FromStr`](https://doc.rust-lang.org/std/str/trait.FromStr.html)
-    /// returning a [`Result`](errors/type.Result.html).
+    /// returning a [`Result`](type.Result.html).
     ///
     /// An example on how to use scan is at the [`crate documentation`](index.html).
     pub fn scan<F>(&mut self) -> Result<F>
-        where F: FromStr,
-              <F as FromStr>::Err: std::error::Error + Send + 'static
+    where
+        F: FromStr,
+        <F as FromStr>::Err: Fail,
     {
-        let &mut InputStream { ref mut reader, ref mut byte_buffer } = self;
-        act_while(reader, |&&c| is_whitespace(c), |_| {}).chain_err(|| "IO Error")?;
+        let &mut InputStream {
+            ref mut reader,
+            ref mut byte_buffer,
+        } = self;
+        act_while(reader, |&&c| is_whitespace(c), |_| {}).context(ErrorKind::Io)?;
         byte_buffer.clear();
-        act_while(reader,
-                  |&&c| !is_whitespace(c),
-                  |slice| byte_buffer.extend_from_slice(slice)).chain_err(|| "IO Error")?;
+        act_while(
+            reader,
+            |&&c| !is_whitespace(c),
+            |slice| byte_buffer.extend_from_slice(slice),
+        ).context(ErrorKind::Io)?;
 
         let slice = match byte_buffer.split_last() {
             Some((&b' ', slice)) => slice,
             _ => byte_buffer.as_slice(),
         };
 
-        str::from_utf8(slice)
-            .chain_err(|| "Input data not Utf-8")?
+        Ok(str::from_utf8(slice)
+            .context(ErrorKind::Utf8)?
             .parse::<F>()
-            .chain_err(|| "Could not parse string into requested type")
+            .context(ErrorKind::Parse)?)
     }
 }
 
@@ -220,10 +272,14 @@ mod tests {
         let mut stream = InputStream::new(text.as_bytes());
         assert_eq!(5, stream.scan().expect("5"));
         assert_eq!(-7, stream.scan().expect("-7"));
-        assert_eq!(true,
-                   (12.5 - stream.scan::<f32>().expect("12.5")).abs() < EPS);
-        assert_eq!(true,
-                   (-2.85 - stream.scan::<f32>().expect("-2.85")).abs() < EPS);
+        assert_eq!(
+            true,
+            (12.5 - stream.scan::<f32>().expect("12.5")).abs() < EPS
+        );
+        assert_eq!(
+            true,
+            (-2.85 - stream.scan::<f32>().expect("-2.85")).abs() < EPS
+        );
     }
 
     #[test]

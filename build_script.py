@@ -17,14 +17,11 @@ def run_command(command, fail_on_output=False):
         finally:
             print(output.decode('utf-8'))
 
-extra_args = []
-if version == 'nightly':
-    extra_args = ['--features', 'clippy']
-
-run_command(['cargo', 'build', '--verbose'] + extra_args)
-run_command(['cargo', 'test', '--verbose'] + extra_args)
+run_command(['cargo', 'build', '--verbose'])
+run_command(['cargo', 'test', '--verbose'])
 run_command(['cargo', 'doc', '--verbose'])
 run_command(['cargo', 'deadlinks'], fail_on_output=True)
 
 if version == 'nightly':
-    run_command(['cargo', 'bench', '--verbose'] + extra_args)
+    run_command(['cargo', '+nightly', 'clippy', '--all-targets'])
+    run_command(['cargo', 'bench', '--verbose'])

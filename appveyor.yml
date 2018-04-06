@@ -22,10 +22,12 @@ install:
   - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
   - rustc -Vv
   - cargo -V
+  - if "%CHANNEL%" == "nightly" cargo install clippy
 
 test_script:
   - cargo build --verbose
   - cargo test --verbose --target %TARGET%
+  - if "%CHANNEL%" == "nightly" cargo +nightly clippy --all-targets
   - if "%CHANNEL%" == "nightly" cargo bench
 cache:
   - C:\Users\appveyor\.cargo\registry

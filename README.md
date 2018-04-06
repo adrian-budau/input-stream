@@ -20,7 +20,7 @@ by adding `input-stream` to the dependencies in your project's `Cargo.toml`:
 
 ```toml
 [dependencies]
-input-stream = "0.2.0"
+input-stream = "0.3.0"
 ```
 
 and this in your crate root:

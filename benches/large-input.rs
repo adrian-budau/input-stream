@@ -1,10 +1,9 @@
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
-
+#![cfg_attr(feature = "clippy", feature(plugin))]
+#![cfg_attr(feature = "clippy", plugin(clippy))]
 #![feature(test)]
-extern crate test;
 extern crate input_stream;
 extern crate rand;
+extern crate test;
 
 use input_stream::InputStream;
 use rand::Rng;
@@ -14,7 +13,8 @@ use test::Bencher;
 const NUMBERS_GENERATED: usize = 100_000;
 
 fn generate_numbers<T>(many: usize) -> String
-    where T: rand::Rand + std::fmt::Display
+where
+    T: rand::Rand + std::fmt::Display,
 {
     let mut rng = rand::thread_rng();
     (0..many)
@@ -27,8 +27,9 @@ fn generate_numbers<T>(many: usize) -> String
 }
 
 fn count_numbers<T>(input: &str) -> usize
-    where T: FromStr,
-          <T as FromStr>::Err: std::error::Error + Send + 'static
+where
+    T: FromStr,
+    <T as FromStr>::Err: std::error::Error + Send + Sync + 'static,
 {
     let mut stream = InputStream::new(input.as_bytes());
 

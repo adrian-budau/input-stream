@@ -20,6 +20,9 @@ cache: cargo
 
 before_script:
   - (cargo install cargo-deadlinks || true)
+  - if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; then
+      cargo install clippy;
+    fi
 
 script:
   - python build_script.py
