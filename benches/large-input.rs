@@ -56,7 +56,7 @@ macro_rules! num_bench {
     }
 }
 
-num_bench!{
+num_bench! {
     (u8, u8_bench),
     (u16, u16_bench),
     (u32, u32_bench),

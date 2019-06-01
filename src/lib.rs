@@ -69,81 +69,67 @@
 //! println!("Read a float: {}", value);
 //!
 
-#![deny(missing_copy_implementations, missing_debug_implementations, missing_docs, trivial_casts,
-        trivial_numeric_casts, unsafe_code, unused_extern_crates, unused_import_braces,
-        unused_qualifications, unused_results, variant_size_differences, warnings)]
-#![cfg_attr(feature = "cargo-clippy", deny(clippy))]
-extern crate failure;
+#![deny(
+    missing_copy_implementations,
+    missing_debug_implementations,
+    missing_docs,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_qualifications,
+    unused_results,
+    variant_size_differences,
+    clippy::all,
+    warnings
+)]
 
-use failure::{Backtrace, Context, Fail, ResultExt};
-use std::fmt::{self, Display, Formatter};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::io::{self, BufRead, Read};
-use std::result;
 use std::str::{self, FromStr};
 
 /// The type of errors this library can return.
-///
-/// A kind can be obtained from an [`Error`](struct.Error.html)
-/// by calling its [`kind`](struct.Error.html#method.kind) method.
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
-pub enum ErrorKind {
-    /// Could not read from the underlying buffered reader.
-    #[fail(display = "IO error")]
-    Io,
-    /// Could not parse the byte buffer into valid Utf8.
-    #[fail(display = "Input data is not utf8")]
-    Utf8,
-    /// Could not parse the utf8 string into the requested type.
-    #[fail(display = "Could not parse string as type")]
-    Parse,
-}
-
-/// The type of the errors returned by this library.
 #[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
-
-impl Error {
-    /// Returns the corresponding [`ErrorKind`](enum.ErrorKind.html) for this error.
-    pub fn kind(&self) -> ErrorKind {
-        *self.inner.get_context()
-    }
-}
-
-impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
-        self.inner.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        Display::fmt(&self.inner, f)
-    }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
-        Error {
-            inner: Context::new(kind),
-        }
-    }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
-        Error { inner }
-    }
+pub enum Error<E> {
+    /// I/O Error
+    Io(io::Error),
+    /// Data is not valid utf8
+    Utf8(str::Utf8Error),
+    /// Could not parse given data type
+    FromStr(E),
+    /// Buffer limit exceeded
+    BufferLimitExceeded,
 }
 
 /// A specialized [`Result`](https://doc.rust-lang.org/std/result/enum.Result.html) for this
 /// library's errors.
-pub type Result<T> = result::Result<T, Error>;
+pub type Result<T, E = Error<<T as FromStr>::Err>> = std::result::Result<T, E>;
+
+impl<E> From<io::Error> for Error<E> {
+    fn from(err: io::Error) -> Self {
+        Error::Io(err)
+    }
+}
+
+impl<E> From<str::Utf8Error> for Error<E> {
+    fn from(err: str::Utf8Error) -> Self {
+        Error::Utf8(err)
+    }
+}
+
+impl<E> Display for Error<E> {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
+        match self {
+            Error::Io(_) => write!(fmt, "I/O Error"),
+            Error::Utf8(_) => write!(fmt, "Data is not valid utf8"),
+            Error::FromStr(_) => write!(fmt, "Could not parse given data type"),
+            Error::BufferLimitExceeded => write!(fmt, "Buffer limit exceeded"),
+        }
+    }
+}
+
+impl<E: Debug> std::error::Error for Error<E> {}
 
 /// A wrapper for [`std::io::BufRead`](https://doc.rust-lang.org/std/io/trait.BufRead.html).
 ///
@@ -155,6 +141,7 @@ pub struct InputStream<T: BufRead> {
     byte_buffer: Vec<u8>,
 }
 
+#[inline(always)]
 fn is_whitespace(c: u8) -> bool {
     match c {
         b' ' | b'\x09'...b'\x0d' => true,
@@ -162,21 +149,22 @@ fn is_whitespace(c: u8) -> bool {
     }
 }
 
-fn act_while<T, F, G>(reader: &mut T, mut condition: F, mut act: G) -> io::Result<()>
+#[inline(always)]
+fn act_while<T, F, G, E>(reader: &mut T, mut condition: F, mut act: G) -> Result<(), Error<E>>
 where
     T: BufRead,
     F: FnMut(&&u8) -> bool,
-    G: FnMut(&[u8]),
+    G: FnMut(&[u8]) -> Result<(), Error<E>>,
 {
     loop {
         let (skipped, done) = match reader.fill_buf() {
             Ok(buf) => {
                 let skipped = buf.iter().take_while(&mut condition).count();
-                act(&buf[..skipped]);
+                act(&buf[..skipped])?;
                 (skipped, skipped < buf.len() || buf.is_empty())
             }
             Err(ref e) if e.kind() == io::ErrorKind::Interrupted => continue,
-            Err(e) => return Err(e),
+            Err(e) => return Err(e.into()),
         };
 
         reader.consume(skipped);
@@ -190,6 +178,7 @@ where
 impl<T: BufRead> InputStream<T> {
     /// Creates an instance of InputStream which wraps the given
     /// [`std::io::BufRead`](https://doc.rust-lang.org/std/io/trait.BufRead.html).
+    #[inline(always)]
     pub fn new(reader: T) -> InputStream<T> {
         InputStream {
             reader,
@@ -202,46 +191,66 @@ impl<T: BufRead> InputStream<T> {
     /// returning a [`Result`](type.Result.html).
     ///
     /// An example on how to use scan is at the [`crate documentation`](index.html).
-    pub fn scan<F>(&mut self) -> Result<F>
-    where
-        F: FromStr,
-        <F as FromStr>::Err: Fail,
-    {
+    pub fn scan<F: FromStr>(&mut self) -> Result<F> {
+        self.inner_scan(None)
+    }
+
+    /// Scan the underlying buffer reader for a value of a type that implements
+    /// [`std::str::FromStr`](https://doc.rust-lang.org/std/str/trait.FromStr.html)
+    /// returning a [`Result`](type.Result.html).
+    ///
+    /// This is a refined version of [`scan`](struct.InputStream.html#method.scan) which allows
+    /// limits to be placed on the maximum size of the internal buffer
+    pub fn scan_with_limit<F: FromStr>(&mut self, limit: usize) -> Result<F> {
+        self.inner_scan(Some(limit))
+    }
+
+    #[inline(always)]
+    fn inner_scan<F: FromStr>(&mut self, limit: Option<usize>) -> Result<F> {
         let &mut InputStream {
             ref mut reader,
             ref mut byte_buffer,
         } = self;
-        act_while(reader, |&&c| is_whitespace(c), |_| {}).context(ErrorKind::Io)?;
+        act_while(reader, |&&c| is_whitespace(c), |_| Ok(()))?;
         byte_buffer.clear();
         act_while(
             reader,
             |&&c| !is_whitespace(c),
-            |slice| byte_buffer.extend_from_slice(slice),
-        ).context(ErrorKind::Io)?;
+            |slice| {
+                if let Some(limit) = limit {
+                    if byte_buffer.len() + slice.len() > limit {
+                        return Err(Error::BufferLimitExceeded);
+                    }
+                }
+
+                byte_buffer.extend_from_slice(slice);
+                Ok(())
+            },
+        )?;
 
         let slice = match byte_buffer.split_last() {
             Some((&b' ', slice)) => slice,
             _ => byte_buffer.as_slice(),
         };
 
-        Ok(str::from_utf8(slice)
-            .context(ErrorKind::Utf8)?
-            .parse::<F>()
-            .context(ErrorKind::Parse)?)
+        str::from_utf8(slice)?.parse().map_err(Error::FromStr)
     }
 }
 
 impl<T: BufRead> Read for InputStream<T> {
-    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+    #[inline(always)]
+    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
         self.reader.read(buffer)
     }
 }
 
 impl<T: BufRead> BufRead for InputStream<T> {
-    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+    #[inline(always)]
+    fn fill_buf(&mut self) -> io::Result<&[u8]> {
         self.reader.fill_buf()
     }
 
+    #[inline(always)]
     fn consume(&mut self, amount: usize) {
         self.reader.consume(amount)
     }
@@ -301,5 +310,14 @@ mod tests {
         let text = "hello";
         let mut stream = InputStream::new(text.as_bytes());
         assert_eq!(true, stream.scan::<i32>().is_err());
+    }
+
+    #[test]
+    fn test_limit_buffer() {
+        let text = "25 150 -250";
+        let mut stream = InputStream::new(text.as_bytes());
+        assert_eq!(25, stream.scan_with_limit(3).expect("25"));
+        assert_eq!(150, stream.scan_with_limit(3).expect("150"));
+        assert!(stream.scan_with_limit::<i32>(3).is_err());
     }
 }

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/)
 
+## [Unreleased]
+### Added
+- `scan_with_limit`
+
+### Modified
+- Error type is a simple enum
+
+### Removed
+- Removed failure dependency
+
 ## [0.3.0] - 2018-04-06
 ### Added
 - Added clippy checks without using it as an optional dependency
