@@ -1,0 +1,20 @@
+nightly:
+  script:
+    - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+    - source $HOME/.cargo/env
+    - cargo test -v
+
+beta:
+  script:
+    - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain beta
+    - source $HOME/.cargo/env
+    - cargo test -v
+
+stable:
+  script:
+    - curl https://sh.rustup.rs -sSf | sh -s -- -y
+    - source $HOME/.cargo/env
+    - rustup component add rustfmt clippy
+    - cargo test -v
+    - cargo fmt -- --check
+    - cargo clippy
