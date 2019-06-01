@@ -1,20 +1,40 @@
 nightly:
+  stage: test
   script:
     - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
     - source $HOME/.cargo/env
     - cargo test -v
+    - cargo bench
 
 beta:
+  stage: test
   script:
     - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain beta
     - source $HOME/.cargo/env
     - cargo test -v
 
 stable:
+  stage: test
   script:
     - curl https://sh.rustup.rs -sSf | sh -s -- -y
     - source $HOME/.cargo/env
     - rustup component add rustfmt clippy
-    - cargo test -v
+    - cargo install cargo-tarpaulin
+    - cargo doc
     - cargo fmt -- --check
     - cargo clippy
+    - cargo tarpaulin -v -o Html
+  artifacts:
+    paths:
+     - tarpaulin-report.html
+
+pages:
+  stage: deploy
+  dependencies:
+    - stable
+  script:
+    - mkdir public/
+    - mv tarpaulin-report.html public/index.html
+  artifacts:
+    paths:
+      - public

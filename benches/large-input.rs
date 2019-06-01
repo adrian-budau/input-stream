@@ -1,20 +1,17 @@
-#![cfg_attr(feature = "clippy", feature(plugin))]
-#![cfg_attr(feature = "clippy", plugin(clippy))]
 #![feature(test)]
-extern crate input_stream;
-extern crate rand;
 extern crate test;
 
 use input_stream::InputStream;
+use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use std::str::FromStr;
 use test::Bencher;
 
 const NUMBERS_GENERATED: usize = 100_000;
 
-fn generate_numbers<T>(many: usize) -> String
+fn generate_numbers<T: ToString>(many: usize) -> String
 where
-    T: rand::Rand + std::fmt::Display,
+    Standard: Distribution<T>,
 {
     let mut rng = rand::thread_rng();
     (0..many)
