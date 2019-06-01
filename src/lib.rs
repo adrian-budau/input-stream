@@ -73,7 +73,6 @@
         trivial_numeric_casts, unsafe_code, unused_extern_crates, unused_import_braces,
         unused_qualifications, unused_results, variant_size_differences, warnings)]
 #![cfg_attr(feature = "cargo-clippy", deny(clippy))]
-#[macro_use]
 extern crate failure;
 
 use failure::{Backtrace, Context, Fail, ResultExt};
